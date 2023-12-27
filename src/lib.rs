@@ -10,9 +10,7 @@ use crate::artifact::{DOMAIN_4_START, Source, STRONGBOX_4_START};
 
 pub mod artifact;
 
-pub fn max_score_from_runs(validator: impl Fn(&Artifact) -> bool, scorer: impl Fn(&Artifact) -> f32, runs: u32, strongbox: bool) -> f32 {
-    let mut max_scores: BTreeMap<Slot, f32> = Default::default();
-
+pub fn max_score_from_runs(max_scores: &mut BTreeMap<Slot, f32>, validator: impl Fn(&Artifact) -> bool, scorer: impl Fn(&Artifact) -> f32, runs: u32, strongbox: bool) -> f32 {
     let total_artifacts = 0;
 
     for _ in 0..runs {
@@ -40,9 +38,11 @@ pub fn max_score_from_runs(validator: impl Fn(&Artifact) -> bool, scorer: impl F
     }
 
     if strongbox {
-        let strongbox_artis = (total_artifacts as f32 * 1.5) as i32;
+        let strongbox_artis = total_artifacts as f32 * 1.5;
 
-        for _ in 0..strongbox_artis {
+        let total_strongbox_artis = strongbox_artis as i32 + if fastrand::f32() < strongbox_artis.fract() { 1 } else { 0 };
+
+        for _ in 0..total_strongbox_artis {
             let artifact = Artifact::new_random(STRONGBOX_4_START, Source::Strongbox);
 
             if !validator(&artifact) {
@@ -59,7 +59,7 @@ pub fn max_score_from_runs(validator: impl Fn(&Artifact) -> bool, scorer: impl F
         }
     }
 
-    max_scores.into_values().sum()
+    max_scores.values().copied().sum()
 }
 
 pub fn simple_validator(sands: Vec<Stat>, goblet: Vec<Stat>, circlet: Vec<Stat>) -> impl Fn(&Artifact) -> bool {
