@@ -9,6 +9,7 @@ fn main() {
     let validator = simple_validator(vec![Stat::Atk_], vec![Stat::Anemo], vec![Stat::CritDam, Stat::CritRate]);
 
     let mut max_scores: Vec<BTreeMap<Slot, f32>> = repeat_with(|| Default::default()).take(iterations).collect();
+    let mut max_scores_off: Vec<BTreeMap<Slot, f32>> = repeat_with(|| Default::default()).take(iterations).collect();
 
     let start = Instant::now();
 
@@ -20,7 +21,7 @@ fn main() {
         let mut total = 0.0;
 
         for i in 0..iterations {
-            total += max_score_from_runs(max_scores.get_mut(i).unwrap(), &validator, example_rater, 9, false);
+            total += max_score_from_runs(max_scores.get_mut(i).unwrap(), max_scores_off.get_mut(i).unwrap(), &validator, example_rater, 9, false);
         }
 
         average_scores.insert(days, total / iterations as f32);
