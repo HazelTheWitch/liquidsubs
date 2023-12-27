@@ -138,3 +138,20 @@ impl Artifact {
         Self { slot, set, main_stat, subs }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    extern crate test;
+    use test::{black_box, Bencher};
+
+    use super::{Artifact, DOMAIN_4_START};
+
+    #[bench]
+    fn bench_artifact_generation(b: &mut Bencher) {
+        b.iter(|| {
+            for _ in 0..10000 {
+                black_box(Artifact::new_random(DOMAIN_4_START, super::Source::Domain));
+            }
+        });
+    }
+}

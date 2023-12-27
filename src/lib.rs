@@ -1,3 +1,5 @@
+#![feature(test)]
+
 //! Liquid subs generator thingy.
 //! 
 //! Stats labeled STAT_ are percent.
