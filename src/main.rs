@@ -30,5 +30,8 @@ fn main() {
 
     println!("completed in {:.2} seconds", duration.as_secs_f32());
 
-    println!("{average_scores:#?}");
+    println!("day,score");
+    for (key, value) in average_scores.iter() {
+        println!("{key},{value}");
+    }
 }
