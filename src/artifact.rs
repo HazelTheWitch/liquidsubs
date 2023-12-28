@@ -1,7 +1,21 @@
-const SLOTS: &[(Slot, f32)] = &[(Slot::Feather, 1.0), (Slot::Flower, 1.0), (Slot::Sands, 1.0), (Slot::Goblet, 1.0), (Slot::Circlet, 1.0)];
+use std::{collections::HashMap, hash::DefaultHasher};
+
+const SLOTS: &[(Slot, f32)] = &[
+    (Slot::Feather, 1.0),
+    (Slot::Flower, 1.0),
+    (Slot::Sands, 1.0),
+    (Slot::Goblet, 1.0),
+    (Slot::Circlet, 1.0),
+];
 
 // Taken from https://genshin-impact.fandom.com/wiki/Artifact/Distribution
-const SANDS: &[(Stat, f32)] = &[(Stat::Atk_, 0.2668), (Stat::Hp_, 0.2668), (Stat::Def_, 0.2668), (Stat::Er, 0.1), (Stat::Em, 0.1)];
+const SANDS: &[(Stat, f32)] = &[
+    (Stat::Atk_, 0.2668),
+    (Stat::Hp_, 0.2668),
+    (Stat::Def_, 0.2668),
+    (Stat::Er, 0.1),
+    (Stat::Em, 0.1),
+];
 const GOBLETS: &[(Stat, f32)] = &[
     (Stat::Atk_, 0.1925),
     (Stat::Hp_, 0.1925),
@@ -14,11 +28,53 @@ const GOBLETS: &[(Stat, f32)] = &[
     (Stat::Anemo, 0.05),
     (Stat::Geo, 0.05),
     (Stat::Physical, 0.05),
-    (Stat::Em, 0.025)
+    (Stat::Em, 0.025),
 ];
-const CIRCLETS: &[(Stat, f32)] = &[(Stat::Atk_, 0.22), (Stat::Hp_, 0.22), (Stat::Def_, 0.22), (Stat::CritRate, 0.1), (Stat::CritDam, 0.1), (Stat::Healing, 0.1), (Stat::Em, 0.04)];
+const CIRCLETS: &[(Stat, f32)] = &[
+    (Stat::Atk_, 0.22),
+    (Stat::Hp_, 0.22),
+    (Stat::Def_, 0.22),
+    (Stat::CritRate, 0.1),
+    (Stat::CritDam, 0.1),
+    (Stat::Healing, 0.1),
+    (Stat::Em, 0.04),
+];
 
-const SUBS: &[(Stat, f32)] = &[(Stat::Hp, 6.0), (Stat::Atk, 6.0), (Stat::Def, 6.0), (Stat::Hp_, 4.0), (Stat::Atk_, 4.0), (Stat::Def_, 4.0), (Stat::Er, 4.0), (Stat::Em, 4.0), (Stat::CritRate, 3.0), (Stat::CritDam, 3.0)];
+const SUBS: &[(Stat, f32)] = &[
+    (Stat::Hp, 6.0),
+    (Stat::Atk, 6.0),
+    (Stat::Def, 6.0),
+    (Stat::Hp_, 4.0),
+    (Stat::Atk_, 4.0),
+    (Stat::Def_, 4.0),
+    (Stat::Er, 4.0),
+    (Stat::Em, 4.0),
+    (Stat::CritRate, 3.0),
+    (Stat::CritDam, 3.0),
+];
+
+lazy_static::lazy_static! {
+    pub static ref AVERAGE_SUB_BASELINE: HashMap<Stat, f32> = average_sub_baseline();
+}
+
+pub fn average_sub_baseline() -> HashMap<Stat, f32> {
+    // Binomial Distribution Expected Value
+    let average_rolls: f32 = 0.42118 + 2.0 * 0.21094 + 3.0 * 0.04688 + 4.0 * 0.00391;
+
+    let mut baseline: HashMap<Stat, f32> = Default::default();
+
+    let total: f32 = SUBS.iter().map(|(_, w)| w).sum();
+
+    for (stat, weight) in SUBS.iter() {
+        let chance_rolling = weight / total;
+
+        let estimated = chance_rolling * average_rolls;
+
+        baseline.insert(*stat, estimated);
+    }
+
+    baseline
+}
 
 fn random_choice<T: Copy>(options: &[(T, f32)]) -> T {
     let total: f32 = options.iter().map(|(_, w)| *w).sum();
@@ -32,7 +88,7 @@ fn random_choice<T: Copy>(options: &[(T, f32)]) -> T {
             return *element;
         }
     }
-    
+
     unreachable!()
 }
 
@@ -59,7 +115,7 @@ pub enum Slot {
     Circlet,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Stat {
     Hp,
     Atk,
@@ -109,7 +165,11 @@ impl Artifact {
             8
         };
 
-        let subs_options: Vec<(Stat, f32)> = SUBS.iter().copied().filter(|(s, _)| s != &main_stat).collect();
+        let subs_options: Vec<(Stat, f32)> = SUBS
+            .iter()
+            .copied()
+            .filter(|(s, _)| s != &main_stat)
+            .collect();
 
         let mut subs = Vec::with_capacity(total_subs);
 
@@ -126,16 +186,23 @@ impl Artifact {
         assert_eq!(total_subs, subs.len());
 
         let set = match source {
-            Source::Domain => if fastrand::f32() < 0.5 {
+            Source::Domain => {
+                if fastrand::f32() < 0.5 {
                     Set::Main
                 } else {
                     Set::Alt
-                },
+                }
+            }
             Source::Strongbox => Set::Main,
             Source::Off => Set::Off,
         };
 
-        Self { slot, set, main_stat, subs }
+        Self {
+            slot,
+            set,
+            main_stat,
+            subs,
+        }
     }
 }
 
